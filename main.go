@@ -226,6 +226,13 @@ func (p *Proxy) credentialRefreshLoop() {
 }
 
 func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// Handle health check endpoint locally
+	if r.URL.Path == "/_health" {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+		return
+	}
+
 	// Get current credentials
 	p.credMutex.RLock()
 	creds := p.credentials
@@ -337,12 +344,4 @@ func getEnvBool(key string, defaultValue bool) bool {
 		return value == "true" || value == "1" || value == "yes"
 	}
 	return defaultValue
-}
-
-// Health check endpoint
-func init() {
-	http.HandleFunc("/_health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
-	})
 }
