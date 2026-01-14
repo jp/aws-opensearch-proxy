@@ -247,8 +247,12 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Log credential details for debugging (without exposing secrets)
+	accessKeyPreview := credentials.AccessKeyID
+	if len(accessKeyPreview) > 10 {
+		accessKeyPreview = accessKeyPreview[:10]
+	}
 	log.Printf("Using credentials - AccessKeyId: %s..., Source: %s",
-		credentials.AccessKeyID[:min(10, len(credentials.AccessKeyID))],
+		accessKeyPreview,
 		credentials.Source)
 
 	// Build target URL
