@@ -246,6 +246,11 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Log credential details for debugging (without exposing secrets)
+	log.Printf("Using credentials - AccessKeyId: %s..., Source: %s",
+		credentials.AccessKeyID[:min(10, len(credentials.AccessKeyID))],
+		credentials.Source)
+
 	// Build target URL
 	targetURL := p.config.OpenSearchURL + r.URL.Path
 	if r.URL.RawQuery != "" {
@@ -308,6 +313,14 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer resp.Body.Close()
+
+	// Log response details for debugging
+	if resp.StatusCode >= 400 {
+		bodyPreview, _ := io.ReadAll(io.LimitReader(resp.Body, 500))
+		log.Printf("OpenSearch error response (%d): %s", resp.StatusCode, string(bodyPreview))
+		// Reset body for copying
+		resp.Body = io.NopCloser(io.MultiReader(bytes.NewReader(bodyPreview), resp.Body))
+	}
 
 	// Copy response headers
 	for key, values := range resp.Header {
