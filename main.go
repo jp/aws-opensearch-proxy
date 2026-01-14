@@ -148,6 +148,8 @@ func NewProxy(cfg *ProxyConfig) (*Proxy, error) {
 		MaxIdleConns:        100,
 		MaxIdleConnsPerHost: 100,
 		IdleConnTimeout:     90 * time.Second,
+		// Disable automatic compression to prevent header modification after signing
+		DisableCompression: true,
 	}
 
 	if cfg.InsecureSkipTLS {
@@ -158,6 +160,10 @@ func NewProxy(cfg *ProxyConfig) (*Proxy, error) {
 	proxy.client = &http.Client{
 		Transport: transport,
 		Timeout:   30 * time.Second,
+		// Disable automatic redirect following to prevent signature issues
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
 	}
 
 	// Setup credentials (with or without role assumption)
@@ -281,10 +287,13 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Copy headers
+	// Copy headers from original request
 	for key, values := range r.Header {
-		// Skip Host header as it will be set by the HTTP client
-		if strings.ToLower(key) == "host" {
+		// Skip headers that will be set by AWS signer or HTTP client
+		keyLower := strings.ToLower(key)
+		if keyLower == "host" || keyLower == "authorization" ||
+			keyLower == "x-amz-date" || keyLower == "x-amz-security-token" ||
+			keyLower == "x-amz-content-sha256" {
 			continue
 		}
 		for _, value := range values {
@@ -295,18 +304,6 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Set Content-Type if not present and body exists
 	if len(bodyBytes) > 0 && proxyReq.Header.Get("Content-Type") == "" {
 		proxyReq.Header.Set("Content-Type", "application/json")
-	}
-
-	// Set headers that HTTP client would set automatically BEFORE signing
-	// This prevents signature mismatch
-	if proxyReq.Header.Get("Accept") == "" {
-		proxyReq.Header.Set("Accept", "*/*")
-	}
-	if proxyReq.Header.Get("Accept-Encoding") == "" {
-		proxyReq.Header.Set("Accept-Encoding", "identity")
-	}
-	if proxyReq.Header.Get("Connection") == "" {
-		proxyReq.Header.Set("Connection", "close")
 	}
 
 	// Calculate payload hash
