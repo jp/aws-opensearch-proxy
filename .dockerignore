@@ -1,13 +1,18 @@
 README.md
 GITHUB_SETUP.md
 QUICKSTART.md
+QUICK_REFERENCE.md
+DEPLOYMENT_SUMMARY.md
+HELM_CHART.md
 Dockerfile
 .dockerignore
 .git
 .gitignore
 .github
+.pre-commit-config.yaml
 *.yaml
 *.yml
+charts/
 k8s/
 *.sh
 LICENSE
@@ -20,4 +25,5 @@ LICENSE
 aws-opensearch-proxy
 *.test
 *.out
+*.tgz
 coverage.out

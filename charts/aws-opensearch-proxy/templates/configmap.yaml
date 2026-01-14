@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "aws-opensearch-proxy.fullname" . }}
+  labels:
+    {{- include "aws-opensearch-proxy.labels" . | nindent 4 }}
+data:
+  opensearch-url: {{ required "opensearch.url is required" .Values.opensearch.url | quote }}
+  aws-region: {{ .Values.opensearch.region | quote }}
+  {{- if .Values.aws.assumeRoleArn }}
+  aws-assume-role-arn: {{ .Values.aws.assumeRoleArn | quote }}
+  {{- end }}

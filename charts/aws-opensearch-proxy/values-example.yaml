@@ -1,0 +1,101 @@
+# Example values for production deployment
+
+# Replace with your OpenSearch endpoint
+opensearch:
+  url: "https://search-your-domain-abc123.us-east-1.es.amazonaws.com"
+  region: "us-east-1"
+
+# Configure IRSA (IAM Roles for Service Accounts)
+serviceAccount:
+  create: true
+  annotations:
+    eks.amazonaws.com/role-arn: "arn:aws:iam::123456789012:role/opensearch-proxy-role"
+
+# Optional: For cross-account access
+# aws:
+#   assumeRoleArn: "arn:aws:iam::987654321098:role/cross-account-opensearch-role"
+
+# Run 3 replicas for high availability
+replicaCount: 3
+
+# Enable autoscaling
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# Production resource limits
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+
+# Enable ingress with TLS
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+  hosts:
+    - host: opensearch.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: opensearch-proxy-tls
+      hosts:
+        - opensearch.example.com
+
+# Enable Pod Disruption Budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+# Enable network policies for security
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+  egress:
+    # Allow DNS
+    - to:
+      - namespaceSelector:
+          matchLabels:
+            name: kube-system
+      ports:
+      - protocol: UDP
+        port: 53
+    # Allow HTTPS to AWS services
+    - to:
+      - namespaceSelector: {}
+      ports:
+      - protocol: TCP
+        port: 443
+
+# Node affinity for production workloads
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - aws-opensearch-proxy
+          topologyKey: kubernetes.io/hostname
+
+# Optional: ServiceMonitor for Prometheus
+# serviceMonitor:
+#   enabled: true
+#   interval: 30s

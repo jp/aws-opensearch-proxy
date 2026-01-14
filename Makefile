@@ -63,6 +63,29 @@ k8s-delete: ## Delete Kubernetes resources
 k8s-logs: ## View logs from Kubernetes pods
 	kubectl logs -n opensearch-proxy -l app=aws-opensearch-proxy -f
 
+helm-lint: ## Lint Helm chart
+	helm lint charts/aws-opensearch-proxy
+
+helm-template: ## Test Helm template rendering
+	helm template test charts/aws-opensearch-proxy \
+		--set opensearch.url=https://test.us-east-1.es.amazonaws.com
+
+helm-install: ## Install Helm chart (requires opensearch.url)
+	@if [ -z "$(OPENSEARCH_URL)" ]; then \
+		echo "Error: OPENSEARCH_URL is required"; \
+		echo "Usage: make helm-install OPENSEARCH_URL=https://your-domain.us-east-1.es.amazonaws.com"; \
+		exit 1; \
+	fi
+	helm install aws-opensearch-proxy charts/aws-opensearch-proxy \
+		--set opensearch.url=$(OPENSEARCH_URL) \
+		--create-namespace
+
+helm-upgrade: ## Upgrade Helm release
+	helm upgrade aws-opensearch-proxy charts/aws-opensearch-proxy
+
+helm-uninstall: ## Uninstall Helm release
+	helm uninstall aws-opensearch-proxy
+
 clean: ## Clean build artifacts
 	rm -f aws-opensearch-proxy
 	go clean

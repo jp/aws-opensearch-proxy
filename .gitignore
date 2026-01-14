@@ -1,5 +1,5 @@
-# Binaries
-aws-opensearch-proxy
+# Binaries (only in root directory)
+/aws-opensearch-proxy
 *.exe
 *.dll
 *.so
@@ -30,6 +30,11 @@ Thumbs.db
 dist/
 build/
 
+# Helm packaging
+*.tgz
+
 # Temporary files
 *.tmp
 *.log
+my-values.yaml
+*-values.yaml

@@ -145,6 +145,25 @@ curl -X POST "http://localhost:8080/my-index/_doc" \
 
 ## Kubernetes Deployment
 
+### Option 1: Helm Chart (Recommended)
+
+The easiest way to deploy is using the Helm chart:
+
+```bash
+# Install with minimum configuration
+helm install aws-opensearch-proxy ./charts/aws-opensearch-proxy \
+  --set opensearch.url=https://search-domain.us-east-1.es.amazonaws.com \
+  --set serviceAccount.annotations."eks\.amazonaws\.com/role-arn"=arn:aws:iam::ACCOUNT_ID:role/opensearch-proxy-role
+
+# Or use a values file
+helm install aws-opensearch-proxy ./charts/aws-opensearch-proxy \
+  -f charts/aws-opensearch-proxy/values-example.yaml
+```
+
+See the [Helm chart documentation](charts/aws-opensearch-proxy/README.md) for all configuration options.
+
+### Option 2: Raw Kubernetes Manifests
+
 ### Prerequisites
 
 1. **IAM Role Setup** (for IRSA - IAM Roles for Service Accounts):

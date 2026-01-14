@@ -1,0 +1,19 @@
+apiVersion: v2
+name: aws-opensearch-proxy
+description: A Helm chart for AWS OpenSearch Proxy with automatic SigV4 request signing
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - aws
+  - opensearch
+  - elasticsearch
+  - proxy
+  - sigv4
+home: https://github.com/jpellet/aws-opensearch-proxy
+sources:
+  - https://github.com/jpellet/aws-opensearch-proxy
+maintainers:
+  - name: jpellet
+    email: julien@example.com
+icon: https://opensearch.org/assets/brand/PNG/Mark/opensearch_mark_default.png
