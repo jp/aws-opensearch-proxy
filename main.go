@@ -27,7 +27,7 @@ import (
 )
 
 const (
-	serviceName           = "es" // Amazon OpenSearch service name for signing
+	serviceName           = "es"             // Amazon OpenSearch service name for signing
 	credentialRefreshTime = 50 * time.Minute // Refresh before 60min expiry
 )
 
@@ -39,11 +39,11 @@ var (
 )
 
 type ProxyConfig struct {
-	ListenPort       string
-	OpenSearchURL    string
-	Region           string
-	AssumeRoleARN    string
-	InsecureSkipTLS  bool
+	ListenPort      string
+	OpenSearchURL   string
+	Region          string
+	AssumeRoleARN   string
+	InsecureSkipTLS bool
 }
 
 type Proxy struct {
@@ -60,7 +60,7 @@ type Proxy struct {
 func main() {
 	var showVersion bool
 	config := &ProxyConfig{}
-	
+
 	flag.BoolVar(&showVersion, "version", false, "Show version information and exit")
 	flag.StringVar(&config.ListenPort, "port", getEnv("PORT", "8080"), "Port to listen on")
 	flag.StringVar(&config.OpenSearchURL, "opensearch-url", getEnv("OPENSEARCH_URL", ""), "Amazon OpenSearch endpoint URL")
@@ -127,7 +127,7 @@ func main() {
 
 func NewProxy(cfg *ProxyConfig) (*Proxy, error) {
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	// Load default AWS config
 	awsConfig, err := config.LoadDefaultConfig(ctx, config.WithRegion(cfg.Region))
 	if err != nil {

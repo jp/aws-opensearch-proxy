@@ -68,11 +68,19 @@ clean: ## Clean build artifacts
 	go clean
 
 fmt: ## Format Go code
-	go fmt ./...
+	gofmt -s -w .
+
+fmt-check: ## Check if code is formatted
+	@if [ "$$(gofmt -s -l . | wc -l)" -gt 0 ]; then \
+		echo "Code is not formatted. Run 'make fmt' to fix:"; \
+		gofmt -s -l .; \
+		exit 1; \
+	fi
+	@echo "✓ Code is properly formatted"
 
 vet: ## Run go vet
 	go vet ./...
 
-lint: fmt vet ## Run linters
+lint: fmt-check vet ## Run linters
 
 all: lint build ## Run linters and build

@@ -81,7 +81,16 @@ The proxy will:
 ### Local Build
 
 ```bash
+# Download dependencies
 go mod download
+
+# Format code (required before committing)
+make fmt
+
+# Build binary
+make build
+
+# Or manually:
 go build -o aws-opensearch-proxy .
 ```
 
@@ -367,8 +376,27 @@ MIT - See [LICENSE](LICENSE) file for details.
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
+### Development Workflow
+
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+3. Make your changes
+4. **Format your code**: `make fmt`
+5. **Run tests**: `make test`
+6. **Run linters**: `make lint`
+7. Commit your changes (`git commit -m 'Add some amazing feature'`)
+8. Push to the branch (`git push origin feature/amazing-feature`)
+9. Open a Pull Request
+
+### Code Quality
+
+Before committing, ensure:
+- Code is formatted with `gofmt`: Run `make fmt`
+- Tests pass: Run `make test`
+- No linter errors: Run `make lint`
+
+Optional: Install pre-commit hooks to automate checks:
+```bash
+pip install pre-commit
+pre-commit install
+```
