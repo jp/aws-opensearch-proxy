@@ -293,6 +293,18 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		proxyReq.Header.Set("Content-Type", "application/json")
 	}
 
+	// Set headers that HTTP client would set automatically BEFORE signing
+	// This prevents signature mismatch
+	if proxyReq.Header.Get("Accept") == "" {
+		proxyReq.Header.Set("Accept", "*/*")
+	}
+	if proxyReq.Header.Get("Accept-Encoding") == "" {
+		proxyReq.Header.Set("Accept-Encoding", "identity")
+	}
+	if proxyReq.Header.Get("Connection") == "" {
+		proxyReq.Header.Set("Connection", "close")
+	}
+
 	// Calculate payload hash
 	hash := sha256.Sum256(bodyBytes)
 	payloadHash := hex.EncodeToString(hash[:])
