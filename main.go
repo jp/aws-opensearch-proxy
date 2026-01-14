@@ -57,6 +57,26 @@ type Proxy struct {
 	cancel      context.CancelFunc
 }
 
+// noModifyTransport wraps http.Transport to prevent header modifications
+type noModifyTransport struct {
+	base *http.Transport
+}
+
+func (t *noModifyTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	// Clone the request to avoid modifying the original
+	req2 := req.Clone(req.Context())
+
+	// Preserve all headers exactly as they are
+	req2.Header = req.Header.Clone()
+
+	// Prevent default header additions by setting them explicitly
+	if req2.Header.Get("User-Agent") == "" {
+		req2.Header.Set("User-Agent", "aws-opensearch-proxy")
+	}
+
+	return t.base.RoundTrip(req2)
+}
+
 func main() {
 	var showVersion bool
 	config := &ProxyConfig{}
@@ -143,24 +163,22 @@ func NewProxy(cfg *ProxyConfig) (*Proxy, error) {
 		cancel:    cancel,
 	}
 
-	// Setup HTTP client
-	transport := &http.Transport{
+	// Setup HTTP client with custom transport to prevent header modifications
+	baseTransport := &http.Transport{
 		MaxIdleConns:        100,
 		MaxIdleConnsPerHost: 100,
 		IdleConnTimeout:     90 * time.Second,
-		// Disable automatic compression to prevent header modification after signing
-		DisableCompression: true,
+		DisableCompression:  true,
 	}
 
 	if cfg.InsecureSkipTLS {
 		log.Println("WARNING: TLS verification disabled")
-		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		baseTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 
 	proxy.client = &http.Client{
-		Transport: transport,
+		Transport: &noModifyTransport{base: baseTransport},
 		Timeout:   30 * time.Second,
-		// Disable automatic redirect following to prevent signature issues
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
@@ -305,6 +323,12 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if len(bodyBytes) > 0 && proxyReq.Header.Get("Content-Type") == "" {
 		proxyReq.Header.Set("Content-Type", "application/json")
 	}
+
+	// Explicitly set headers that http.Client might modify to match AWS expectations
+	// These must be set BEFORE signing
+	proxyReq.Header.Set("Accept", "*/*")
+	proxyReq.Header.Set("Accept-Encoding", "identity")
+	proxyReq.Header.Set("Connection", "close")
 
 	// Calculate payload hash
 	hash := sha256.Sum256(bodyBytes)
