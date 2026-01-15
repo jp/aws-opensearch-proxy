@@ -147,117 +147,65 @@ curl -X POST "http://localhost:8080/my-index/_doc" \
 
 ### Option 1: Helm Chart (Recommended)
 
-The easiest way to deploy is using the Helm chart:
+The Helm chart is published to GitHub Container Registry (GHCR) as an OCI artifact.
+
+#### Install from OCI Registry
 
 ```bash
-# Install with minimum configuration
-helm install aws-opensearch-proxy ./charts/aws-opensearch-proxy \
+# Install directly from GHCR
+helm install aws-opensearch-proxy \
+  oci://ghcr.io/jp/charts/aws-opensearch-proxy \
+  --version 1.0.0 \
   --set opensearch.url=https://search-domain.us-east-1.es.amazonaws.com \
+  --set opensearch.region=us-east-1 \
   --set serviceAccount.annotations."eks\.amazonaws\.com/role-arn"=arn:aws:iam::ACCOUNT_ID:role/opensearch-proxy-role
 
 # Or use a values file
-helm install aws-opensearch-proxy ./charts/aws-opensearch-proxy \
-  -f charts/aws-opensearch-proxy/values-example.yaml
+helm install aws-opensearch-proxy \
+  oci://ghcr.io/jp/charts/aws-opensearch-proxy \
+  --version 1.0.0 \
+  -f my-values.yaml
 ```
+
+#### Use as Dependency in Chart.yaml
+
+Add to your `Chart.yaml`:
+
+```yaml
+dependencies:
+  - name: aws-opensearch-proxy
+    version: "1.0.0"
+    repository: "oci://ghcr.io/jp/charts"
+```
+
+Then update dependencies:
+
+```bash
+helm dependency update
+helm install my-release .
+```
+
+
+#### Install from Local Chart
+
+For development or customization:
+
+```bash
+# Clone the repository
+git clone https://github.com/jp/aws-opensearch-proxy.git
+cd aws-opensearch-proxy
+
+# Install from local chart
+helm install aws-opensearch-proxy ./charts/aws-opensearch-proxy \
+  --set opensearch.url=https://search-domain.us-east-1.es.amazonaws.com \
+  --set serviceAccount.annotations."eks\.amazonaws\.com/role-arn"=arn:aws:iam::ACCOUNT_ID:role/opensearch-proxy-role
+```
+
+#### Chart Configuration
 
 See the [Helm chart documentation](charts/aws-opensearch-proxy/README.md) for all configuration options.
 
-### Option 2: Raw Kubernetes Manifests
-
-### Prerequisites
-
-1. **IAM Role Setup** (for IRSA - IAM Roles for Service Accounts):
-
-```bash
-# Create IAM role for the service account
-aws iam create-role \
-  --role-name opensearch-proxy-role \
-  --assume-role-policy-document '{
-    "Version": "2012-10-17",
-    "Statement": [{
-      "Effect": "Allow",
-      "Principal": {
-        "Federated": "arn:aws:iam::ACCOUNT_ID:oidc-provider/oidc.eks.REGION.amazonaws.com/id/OIDC_ID"
-      },
-      "Action": "sts:AssumeRoleWithWebIdentity",
-      "Condition": {
-        "StringEquals": {
-          "oidc.eks.REGION.amazonaws.com/id/OIDC_ID:sub": "system:serviceaccount:opensearch-proxy:aws-opensearch-proxy"
-        }
-      }
-    }]
-  }'
-
-# Attach OpenSearch access policy
-aws iam put-role-policy \
-  --role-name opensearch-proxy-role \
-  --policy-name opensearch-access \
-  --policy-document '{
-    "Version": "2012-10-17",
-    "Statement": [{
-      "Effect": "Allow",
-      "Action": [
-        "es:ESHttpGet",
-        "es:ESHttpPost",
-        "es:ESHttpPut",
-        "es:ESHttpDelete",
-        "es:ESHttpHead"
-      ],
-      "Resource": "arn:aws:es:REGION:ACCOUNT_ID:domain/DOMAIN_NAME/*"
-    }]
-  }'
-
-# For cross-account role assumption, add this policy:
-aws iam put-role-policy \
-  --role-name opensearch-proxy-role \
-  --policy-name assume-cross-account-role \
-  --policy-document '{
-    "Version": "2012-10-17",
-    "Statement": [{
-      "Effect": "Allow",
-      "Action": "sts:AssumeRole",
-      "Resource": "arn:aws:iam::TARGET_ACCOUNT_ID:role/cross-account-opensearch-role"
-    }]
-  }'
-```
-
-### Deployment Steps
-
-1. **Update ConfigMap** (`configmap.yaml`):
-   ```yaml
-   data:
-     OPENSEARCH_URL: "https://search-your-domain.us-east-1.es.amazonaws.com"
-     AWS_REGION: "us-east-1"
-     # Optional for cross-account:
-     AWS_ASSUME_ROLE_ARN: "arn:aws:iam::TARGET_ACCOUNT:role/opensearch-role"
-   ```
-
-2. **Update ServiceAccount** (`serviceaccount.yaml`):
-   ```yaml
-   annotations:
-     eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/opensearch-proxy-role
-   ```
-
-3. **Update Deployment Image** (`deployment.yaml`):
-   ```yaml
-   image: your-registry/aws-opensearch-proxy:latest
-   ```
-
-4. **Apply Manifests**:
-   ```bash
-   kubectl apply -f namespace.yaml
-   kubectl apply -f configmap.yaml
-   kubectl apply -f serviceaccount.yaml
-   kubectl apply -f deployment.yaml
-   kubectl apply -f service.yaml
-   kubectl apply -f ingress.yaml  # Optional, configure as needed
-   ```
-
-5. **Verify Deployment**:
-   ```bash
-   kubectl get pods -n opensearch-proxy
-   kubectl logs -n opensearch-proxy -l app=aws-opensearch-proxy
-   ```
+**Available versions:** Check the [releases page](https://github.com/jp/aws-opensearch-proxy/releases) or the [packages page](https://github.com/jp/packages) for available chart versions.
 
 ### Access the Proxy
 
@@ -372,8 +320,6 @@ This project uses GitHub Actions for automated testing and Docker image builds:
 - **Docker Publish**: Automatically builds and pushes multi-arch images to Docker Hub on version tags
 - **Test**: Runs tests on every push and pull request
 - **Docker Build Test**: Validates Docker builds on pull requests
-
-See [`GITHUB_SETUP.md`](GITHUB_SETUP.md) for setup instructions.
 
 ## Version Information
 

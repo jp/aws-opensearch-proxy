@@ -4,10 +4,7 @@ on:
   push:
     tags:
       - 'v*.*.*'  # Trigger on version tags like v1.0.0, v1.2.3, etc.
-    branches:
-      - main
-    paths:
-      - 'charts/aws-opensearch-proxy/**'
+      - 'v*.*.*-*'  # Also support pre-release tags like v1.0.0-beta
   workflow_dispatch:  # Allow manual trigger
 
 env:
