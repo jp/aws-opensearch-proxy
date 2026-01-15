@@ -1,0 +1,71 @@
+name: Publish Helm Chart
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Trigger on version tags like v1.0.0, v1.2.3, etc.
+    branches:
+      - main
+    paths:
+      - 'charts/aws-opensearch-proxy/**'
+  workflow_dispatch:  # Allow manual trigger
+
+env:
+  REGISTRY: ghcr.io
+  CHART_PATH: charts/aws-opensearch-proxy
+
+jobs:
+  publish-chart:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'latest'
+
+      - name: Log in to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+
+      - name: Extract chart version
+        id: chart_version
+        run: |
+          CHART_VERSION=$(grep '^version:' ${{ env.CHART_PATH }}/Chart.yaml | awk '{print $2}')
+          echo "version=${CHART_VERSION}" >> $GITHUB_OUTPUT
+          echo "Chart version: ${CHART_VERSION}"
+
+      - name: Package Helm chart
+        run: |
+          helm package ${{ env.CHART_PATH }}
+
+      - name: Push Helm chart to GHCR
+        run: |
+          CHART_VERSION=${{ steps.chart_version.outputs.version }}
+          helm push aws-opensearch-proxy-${CHART_VERSION}.tgz oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/charts
+
+      - name: Summary
+        run: |
+          CHART_VERSION=${{ steps.chart_version.outputs.version }}
+          echo "### Helm Chart Published! :rocket:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Chart:** aws-opensearch-proxy" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${CHART_VERSION}" >> $GITHUB_STEP_SUMMARY
+          echo "**Registry:** oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/charts" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "#### Usage" >> $GITHUB_STEP_SUMMARY
+          echo '```yaml' >> $GITHUB_STEP_SUMMARY
+          echo "dependencies:" >> $GITHUB_STEP_SUMMARY
+          echo "  - name: aws-opensearch-proxy" >> $GITHUB_STEP_SUMMARY
+          echo "    version: \"${CHART_VERSION}\"" >> $GITHUB_STEP_SUMMARY
+          echo "    repository: \"oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/charts\"" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ **Note:** Make sure the package is set to public at:" >> $GITHUB_STEP_SUMMARY
+          echo "https://github.com/${{ github.repository_owner }}/packages" >> $GITHUB_STEP_SUMMARY
