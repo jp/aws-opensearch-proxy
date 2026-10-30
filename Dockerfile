@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.22-alpine AS builder
+FROM golang:1.27-alpine3.24 AS builder
 
 WORKDIR /app
 
@@ -26,7 +26,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo \
     -o aws-opensearch-proxy .
 
 # Final stage
-FROM alpine:3.19
+FROM alpine:3.24
 
 # Build metadata
 ARG VERSION=dev
